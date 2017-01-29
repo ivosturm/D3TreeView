@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<widget id="D3TreeView.widget.D3TreeView" needsEntityContext="true" xmlns="http://www.mendix.com/widget/1.0/">
+    <name>D3 TreeView</name>
+    <description>Create an interactive TreeView diagram on your webpage using the D3 library.</description>
+    <icon>
+	
+	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
+	
+	</icon>
+    <properties>
+        <property key="nodeEntity" type="entity" required="true" allowNonPersistableEntities="true" >
+            <caption>Node Entity</caption>
+            <category>Data Source</category>
+            <description>The entity returned by the get TreeView nodes microflow</description>
+        </property>
+        <property key="nameAttr" type="attribute" entityProperty="nodeEntity" required="true">
+            <caption>Name Attribute</caption>
+            <category>Data Source</category>
+            <description>The attribute used for the name of the nodes displayed in the tree</description>
+            <attributeTypes>
+                <attributeType name="String"/>
+            </attributeTypes>
+        </property>
+        <property key="updateAttr" type="attribute" entityProperty="nodeEntity" required="true">
+            <caption>Update Attribute</caption>
+            <category>Data Source</category>
+            <description>The attribute used for marking as updated when drag and drop is enabled. This makes it easier to filter the objects that are changed in the widget, hence need a change and commit in the save microflow.</description>
+            <attributeTypes>
+                <attributeType name="Boolean"/>
+            </attributeTypes>
+        </property>
+		<property key="parentReference" type="entity" entityProperty="nodeEntity" isPath="yes" pathType="reference" allowNonPersistableEntities="true" required="true">
+            <caption>Parent Reference</caption>
+            <category>Data Source</category>
+            <description>The parent reference, often a self reference on the data entity.</description>
+        </property>
+		<property key="zoomEnabled" type="boolean" required="true" defaultValue="true">
+            <caption>Zoom Enabled</caption>
+            <category>Interaction</category>
+            <description>Whether an end-user is able to zoom in and out.</description>
+        </property>
+		<property key="dragDropEnabled" type="boolean" required="true" defaultValue="false">
+            <caption>Drag Drop Enabled</caption>
+            <category>Interaction</category>
+            <description>Whether an end-user is able to drag and drop nodes in the tree.</description>
+        </property>
+		<property key="_saveBtnText" type="string" required="false" defaultValue="Save">
+            <caption>Save Button Text</caption>
+            <category>Formatting</category>
+            <description>The text to appear on the button with save functionality.</description>
+        </property>
+		<property key="_collapeAllBtnText" type="string" required="false" defaultValue="">
+            <caption>Collape All Button Text</caption>
+            <category>Formatting</category>
+            <description>The text to appear on the button with 'collapse all' functionality.</description>
+        </property>
+		<property key="_expandAllBtnText" type="string" required="false" defaultValue="">
+            <caption>Expand All Button Text</caption>
+            <category>Formatting</category>
+            <description>The text to appear on the button with 'expand all' functionality.</description>
+        </property>
+		<property key="collapseExpandAllEnabled" type="boolean" required="true" defaultValue="true">
+            <caption>CollapseExpandAll Enabled</caption>
+            <category>Interaction</category>
+            <description>Whether an end-user is able to collape and expand the full tree.</description>
+        </property>
+        <property key="onClickMF" type="microflow" required="false" defaultValue="" entityProperty="nodeEntity">
+            <caption> On Click MF</caption>
+            <category>Interaction</category>
+            <description>The microflow to execute on click. If a microflow is chosen here, drag and drop will not work.</description>
+			 <returnType type="Boolean" />
+        </property>
+        <property key="saveMicroflow" type="microflow" required="false" defaultValue="">
+            <caption>Save TreeView Nodes MF</caption>
+            <category>Data Source</category>
+            <description>The microflow to pass the changed treenodes to. Updated nodes from the GUI are marked with updated=true. See D3TreeView_DemoProject for more info.</description>
+            <returnType type="Boolean" />
+        </property>
+		<property key="_viewerHeight" type="integer" required="true" defaultValue="500">
+            <caption>Height</caption>
+            <category>Appearance</category>
+            <description>The height of the SVG widget on the screen.</description>
+        </property>
+		<property key="_viewerWidth" type="integer" required="true" defaultValue="1000">
+            <caption>Width</caption>
+            <category>Appearance</category>
+            <description>The width of the SVG widget on the screen..</description>
+        </property>
+		<property key="_verticalNodeDistance" type="integer" required="true" defaultValue="50">
+            <caption>V Node Distance</caption>
+            <category>Appearance</category>
+            <description>The vertical distance between two nodes on same level, so same horizontal position.</description>
+        </property>
+		<property key="_horizontalNodeDistance" type="integer" required="true" defaultValue="8">
+            <caption>H Node Distance</caption>
+            <category>Appearance</category>
+            <description>The horiontal distance between nodes on next level, so same vertical position.</description>
+        </property>
+		<property key="_buttonsBelow" type="boolean" required="true" defaultValue="false">
+            <caption>Buttons Below TreeView</caption>
+            <category>Appearance</category>
+            <description>Whether the buttons for save, collapse/expand will be positioned above (Yes) or below (No) the TreeView.</description>
+        </property>
+		<property key="duration" type="integer" required="true" defaultValue="750">
+            <caption>Duration</caption>
+            <category>Appearance</category>
+            <description>The duration of the animation in ms. So, 1000 is 1 second.</description>
+        </property>
+		<property key="_backgroundColor" type="string" required="false" defaultValue="transparent">
+            <caption>Background Color</caption>
+            <category>Formatting</category>
+            <description>The color for the background of the widget SVG container.</description>
+        </property>
+		<property key="fontColor" type="string" required="false" defaultValue="#816c6a">
+            <caption>Font Color</caption>
+            <category>Formatting</category>
+            <description>The color being used in the title and display value.</description>
+        </property>
+		<property key="fontSize" type="integer" required="true" defaultValue="10">
+            <caption>Font Size</caption>
+            <category>Formatting</category>
+            <description>The size of the text displayed at the nodes.</description>
+        </property>
+		<property key="nodeRadius" type="integer" required="true" defaultValue="5">
+            <caption>Node Radius</caption>
+            <category>Formatting</category>
+            <description>The radius of the nodes in the tree.</description>
+        </property>
+		<property key="nodeFillColor" type="string" required="true" defaultValue="#ffffff">
+            <caption>Node Fill Color</caption>
+            <category>Formatting</category>
+            <description>The color to fill the node with.</description>
+        </property>
+		<property key="nodeStrokeColor" type="string" required="true" defaultValue="#AA112D">
+            <caption>Node Stroke Color</caption>
+            <category>Formatting</category>
+            <description>The color of the border of the node.</description>
+        </property>
+		<property key="ghostNodeColor" type="string" required="true" defaultValue="#AA112D">
+            <caption>Ghost Node Color</caption>
+            <category>Formatting</category>
+            <description>The color of ghostnodes appearing in drag and drop modus.</description>
+        </property>	
+		<property key="nodeStrokeWidth" type="string" required="true" defaultValue="1.5px">
+            <caption>Node Stroke Width</caption>
+            <category>Formatting</category>
+            <description>The width in pixels of the stroking of the node. Use as format an integer or decimal value + 'px' behind it.</description>
+        </property>
+		<property key="linkStrokeColor" type="string" required="true" defaultValue="#cccccc">
+            <caption>Link Stroke Color</caption>
+            <category>Formatting</category>
+            <description>The color used for the links connecting the nodes.</description>
+        </property>
+        <property key="nodeMicroflow" type="microflow" required="false" defaultValue="">
+            <caption>Get TreeView Nodes MF</caption>
+            <category>Data Source</category>
+            <description>The microflow which creates all (non-persistent) nodes to be displayed in the tree.</description>
+            <returnType type="Object" isList="true" entityProperty="nodeEntity"/>
+        </property>
+		<property key="loggingEnabled" type="boolean" required="true" defaultValue="false">
+            <caption>Enable Logging</caption>
+            <category>Logging</category>
+            <description>When set to true, information regarding the working of the widget will be logged in the browser console for debugging purpose.</description>
+        </property>
+    </properties>
+</widget>
+
