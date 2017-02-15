@@ -16,6 +16,11 @@
 	Known bugs
 	========================
 	When collapsing and expanding quickly after eachother, the nodes circles do not come back.
+	
+	Versions
+	========================
+	v1.1 - Fix for when context entity is updated, was not properly refreshing. Changed _cleanDomNode function not to clear the svg-tree container which holds the full TreeView + 	the added HTML Button Container div. See widget/template/D3TreeView.html for changes as well.
+		 - Added Centralize On Click setting which defaults to No. 
 */
 
 // Required module list. Remove unnecessary modules, you can always get them back from the boilerplate.
@@ -89,23 +94,16 @@ define([
 
             this._contextObj = obj;
             this._resetSubscriptions();
-            this._updateRendering();
+            this._updateRendering(this._contextObj);
 
             if (typeof callback !== "undefined") {
               callback();
             }
         },
 
-        // mxui.widget._WidgetBase.uninitialize is called when the widget is destroyed. Implement to do special tear-down work.
-        uninitialize: function() {
-			// Clean up listeners, helper objects, etc. There is no need to remove listeners added with this.connect / this.subscribe / this.own.
-            this._cleanUpDomNode(this.domNode);
-			if (this._progressID) {
-				this._hideProgress();
-			}
-        },
-        _drawChart: function(objs) {
 
+        _drawChart: function(objs) {
+			
 			if (objs){
 				// fill global array, so it can be used later on to store the changes
 				this._nodeObjects = objs;
@@ -217,13 +215,13 @@ define([
         },
 
         // rerender the interface.
-        _updateRendering: function() {
+        _updateRendering: function(obj) {
 
             // draw and attach event handlers only first time when this._tree is not populated yet
-            if (this._contextObj !== null && this._treeData.length === 0) {
+            if (obj !== null && this._treeData.length === 0) {
 				this._showProgress();
 				this._loadTreeData();
-            } else if (this._contextObj !== null && this._treeData.length > 0){
+            } else if (obj !== null && this._treeData.length > 0){
 				// only redraw
 				this._expand(this._root);
 			} 
@@ -247,8 +245,15 @@ define([
                 _objectHandle = this.subscribe({
                     guid: this._contextObj.getGuid(),
                     callback: dojoLang.hitch(this, function (guid) {
-						console.log(this.id + "update on entity with guid: " + guid);
-                        this._cleanUpDomNode(this.domNode,this._updateRendering);
+						if (this.loggingEnabled){
+							console.log(this.id + "update on entity with guid: " + guid);
+						}
+						// reset _initialLoad, since it will trigger a resize of the widget based on the height it needs
+						this._intialLoad = true;
+						// empty stored treeData of previous version of context object
+						this._treeData = [];
+						this._showProgress();
+                        this._cleanUpDomNode(this.svgTree,this._loadTreeData());
                     })
                 });
 
@@ -302,7 +307,9 @@ define([
 			d = this._toggleChildren(d);
 			if (d){
 				this._updateTree(d);
-				this._centerNode(d);
+				if (this.centralizeOnClick){
+					this._centerNode(d);
+				}
 			}
 		},
 		_updateTree : function(source) {
@@ -337,7 +344,7 @@ define([
 				d.y = (d.depth * (this._maxLabelLength * this._horizontalNodeDistance)); 
 			}));
 
-			// Update the nodes…
+			// Update the nodesâ€¦
 			var node = this._svgGroup.selectAll("g.node")
 				.data(this._nodes, dojoLang.hitch(this,function(d) {
 					return d.id || (d.id = ++this._i);
@@ -443,7 +450,7 @@ define([
 			nodeExit.select("text")
 				.style("fill-opacity", 0);
 
-			// Update the links…
+			// Update the linksâ€¦
 			var link = this._svgGroup.selectAll("path.link")
 				.data(this._links, function(d) {
 					return d.target.id;
@@ -905,10 +912,18 @@ define([
 			},this);
 			
 		},
+        // mxui.widget._WidgetBase.uninitialize is called when the widget is destroyed. Implement to do special tear-down work.
+        uninitialize: function() {
+			// Clean up listeners, helper objects, etc. There is no need to remove listeners added with this.connect / this.subscribe / this.own.
+            this._cleanUpDomNode(this.svgTree);
+			if (this._progressID) {
+				this._hideProgress();
+			}
+        },
 		_cleanUpDomNode: function(node,callback) {
 
-            while (node.firstChild) {
-                node.removeChild(node.firstChild);
+            while (node.firstChild ) {
+               node.removeChild(node.firstChild);
             }
 			if (typeof callback !== "undefined") {
               callback();
