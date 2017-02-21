@@ -21,6 +21,7 @@
 	========================
 	v1.1 - Fix for when context entity is updated, was not properly refreshing. Changed _cleanDomNode function not to clear the svg-tree container which holds the full TreeView + 	the added HTML Button Container div. See widget/template/D3TreeView.html for changes as well.
 		 - Added Centralize On Click setting which defaults to No. 
+	v1.2 - Added possibility for on click MF trigger on root node. 
 */
 
 // Required module list. Remove unnecessary modules, you can always get them back from the boilerplate.
@@ -659,7 +660,7 @@ define([
 			// a drag event is also triggered when clicking. 
 			this._dragListener = d3.behavior.drag()
 				.on("dragstart", dojoLang.hitch(this,function(d) {
-					if (d == this._root) {
+					if (d == this._root && !this.onClickMF) {
 						return;
 					}
 					this._dragStarted = true;
