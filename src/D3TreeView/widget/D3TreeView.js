@@ -3,7 +3,7 @@
     ========================
 
     @file      : D3TreeView.js
-    @version   : 1.1.1
+    @version   : 1.2.1
     @author    : Ivo Sturm
     @date      : 25-07-2017
     @copyright : First Consulting
@@ -21,7 +21,7 @@
 	========================
 	v1.1 - Fix for when context entity is updated, was not properly refreshing. Changed _cleanDomNode function not to clear the svg-tree container which holds the full TreeView + 	the added HTML Button Container div. See widget/template/D3TreeView.html for changes as well.
 		 - Added Centralize On Click setting which defaults to No. 
-	v1.1.1 - Minor fix for this._rightmostNode. Initial value was not set, giving NaN browser console errors.	 
+	v1.2.1 - Minor fix for this._rightmostNode. Initial value was not set, giving NaN browser console errors.	 
 */
 
 // Required module list. Remove unnecessary modules, you can always get them back from the boilerplate.
