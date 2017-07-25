@@ -3,9 +3,9 @@
     ========================
 
     @file      : D3TreeView.js
-    @version   : 1.0.0
+    @version   : 1.1.1
     @author    : Ivo Sturm
-    @date      : 29-01-2017
+    @date      : 25-07-2017
     @copyright : First Consulting
     @license   : Apache 2
 
@@ -21,7 +21,7 @@
 	========================
 	v1.1 - Fix for when context entity is updated, was not properly refreshing. Changed _cleanDomNode function not to clear the svg-tree container which holds the full TreeView + 	the added HTML Button Container div. See widget/template/D3TreeView.html for changes as well.
 		 - Added Centralize On Click setting which defaults to No. 
-	v1.2 - Added possibility for on click MF trigger on root node. 
+	v1.1.1 - Minor fix for this._rightmostNode. Initial value was not set, giving NaN browser console errors.	 
 */
 
 // Required module list. Remove unnecessary modules, you can always get them back from the boilerplate.
@@ -55,6 +55,7 @@ define([
 		_progressID   : null,
 		_totalNodes : 0,
 		_maxLabelLength : 0,
+		_rightmostNode: 0,
 		_selectedNode : null,
 		_draggingNode : null,
 		_panSpeed : 200,
@@ -660,7 +661,7 @@ define([
 			// a drag event is also triggered when clicking. 
 			this._dragListener = d3.behavior.drag()
 				.on("dragstart", dojoLang.hitch(this,function(d) {
-					if (d == this._root && !this.onClickMF) {
+					if (d == this._root) {
 						return;
 					}
 					this._dragStarted = true;
