@@ -3,9 +3,9 @@
     ========================
 
     @file      : D3TreeView.js
-    @version   : 1.2.1
+    @version   : 2.0.0
     @author    : Ivo Sturm
-    @date      : 25-07-2017
+    @date      : 8-5-2018
     @copyright : First Consulting
     @license   : Apache 2
 
@@ -21,7 +21,10 @@
 	========================
 	v1.1 - Fix for when context entity is updated, was not properly refreshing. Changed _cleanDomNode function not to clear the svg-tree container which holds the full TreeView + 	the added HTML Button Container div. See widget/template/D3TreeView.html for changes as well.
 		 - Added Centralize On Click setting which defaults to No. 
-	v1.2.1 - Minor fix for this._rightmostNode. Initial value was not set, giving NaN browser console errors.	 
+	v1.2.1 - Minor fix for this._rightmostNode. Initial value was not set, giving NaN browser console errors.	
+	v2.0.0 - Added support for Indented Horizontal TreeView. 
+		   - Added managing colors for expanded / collapsed parents and nodes without children
+		   - Added showTopParent setting to cater for multiple topparents. If showTopParent = false, the Top Parent will not be shown.
 */
 
 // Required module list. Remove unnecessary modules, you can always get them back from the boilerplate.
@@ -39,8 +42,9 @@ define([
     "D3TreeView/lib/d3-v3-min"
 ], function(declare, _WidgetBase, _TemplatedMixin, dom, dojoDom, on, dojoStyle, dojoArray, dojoLang,  widgetTemplate) {
     "use strict";
-	// d3 is added to the window, so redefine it for programming convenience
-	var d3 = window.d3;
+	// d3 v3 is added to the window, so redefine it for programming convenience
+	var d3 = window.d3;	
+		
     // Declare widget's prototype.
     return declare("D3TreeView.widget.D3TreeView", [ _WidgetBase, _TemplatedMixin ], {
         // _TemplatedMixin will create our dom node using this HTML template.
@@ -135,19 +139,17 @@ define([
 				
 			}
 			
-			this._tree = d3.layout.tree()
-				.size([this._viewerHeight, this._viewerWidth]);
-
+			this._tree = d3.layout.tree();
+						
 			// define a d3 diagonal projection for use by the node paths later on.
 			this._diagonal = d3.svg.diagonal()
-				.projection(function(d) {
-					return [d.y, d.x];
-				});			
-
+				.projection(function(d) { return [d.y, d.x]; });	
+								
 			// filter operation gives back a list, but since only one node should be the topparent with no parents itself, we can take the first
 			var treeData = this._treeData.filter(dojoLang.hitch(this,function(e) {
 				return e.parentGuid === "";
 			}))[0];
+			
 			
 			// if data fed to widget, setup the tree
 			if (treeData){
@@ -166,7 +168,7 @@ define([
 
 				// define the zoomListener which calls the zoom function on the "zoom" event constrained within the scaleExtents
 				this._zoomListener = d3.behavior.zoom().scaleExtent([0.1, 3]).on("zoom", dojoLang.hitch(this,function(){this._zoom();}));
-				
+
 				// create svg element
 				var baseSvg;
 				
@@ -193,22 +195,39 @@ define([
 									
 				// Define the root
 				this._root = treeData;
+
+				if (!this.showTopParent){
+					// Mark root object as top parent to make it possible to not show it later on
+					this._root._topParent = true;
+				};
 				
+				this._root.y0 = 0;
 				// add extra spacing horizontally based on length of text of rootelement
 				this._rootOffsetX = (this._root.name.length / 0.6) * 6;
 				// add extra spacing vertically for margin on top and bottom
-				this._rootOffsetY = 20;
-				
-				this._root.x0 = this._viewerHeight / 2;
-				this._root.y0 = 0;
-			
-				// initialize layout of tree
-				this._expand(this._root);
+				this._rootOffsetY = 20;	
+
+				if (this.verticalTreeView){
+					if (this.loggingEnabled){
+						console.log('indented treeview');
+					}
+					this._root.x0 = this._rootOffsetX;	
 					
+				} else {
+					if (this.loggingEnabled){
+						console.log('normal treeview');
+					}
+					this._root.x0 = this._viewerHeight / 2 + this._rootOffsetX;				
+				}
+				
 				// reposition root based on offsets
 				d3.select('g').transition()
 					.duration(this.duration)
 					.attr("transform", "translate(" + this._rootOffsetX + "," + this._rootOffsetY + ")");
+									
+				// initialize layout of tree
+				this._expand(this._root);
+					
 			}
 			
 			this._hideProgress();
@@ -308,13 +327,13 @@ define([
 			if (d3.event && d3.event.defaultPrevented) return; // click suppressed
 			d = this._toggleChildren(d);
 			if (d){
-				this._updateTree(d);
+				this._updateTreeView(d);
 				if (this.centralizeOnClick){
 					this._centerNode(d);
 				}
 			}
 		},
-		_updateTree : function(source) {
+		_updateTreeView : function(source){
 			// Compute the new height, function counts total children of root node and sets tree height accordingly.
 			// This prevents the layout looking squashed when new nodes are made visible or looking sparse when nodes are removed
 			// This makes the layout more consistent.
@@ -332,18 +351,35 @@ define([
 				}
 			};
 
+			// walk through root to get the children per level and store this in levelWidth array
 			childCount(0, this._root);
-
+							
+			// new height is based on the max of the number of children per level, so [1,4,8,2] => 8 children
 			var newHeight = d3.max(levelWidth) * this._verticalNodeDistance; // x pixels per line  
-			this._tree = this._tree.size([newHeight, this._viewerWidth]);
+			this._tree = this._tree.size([newHeight, this._viewerWidth]);			
+					
+			if (this.verticalTreeView){
+				this._updateIndentedTree(source);
+			} else {
+				this._updateTree(source);
+			}
+		},
+		_updateTree : function(source) {
 
 			// Compute the new tree layout.
-			this._nodes = this._tree.nodes(this._root).reverse(),
-			this._links = this._tree.links(this._nodes);
+			this._nodes = this._tree.nodes(this._root).reverse();
+			
+			if (!this.showTopParent){
+				this._links = this._tree.links(this._nodes).filter(function(d){  return !d.source._topParent });
+			} else {
+				this._links = this._tree.links(this._nodes);
+			}
 
 			// Set widths between levels based on maxLabelLength.
 			this._nodes.forEach(dojoLang.hitch(this,function(d) {
+				
 				d.y = (d.depth * (this._maxLabelLength * this._horizontalNodeDistance)); 
+
 			}));
 
 			// Update the nodes…
@@ -354,6 +390,7 @@ define([
 
 			// Enter any new nodes at the parent's previous position.
 			var nodeEnter = node.enter().append("g")
+				.filter(function(d){ return !d._topParent })
 				.call(this._dragListener)
 				.attr("class", "node")
 				.attr("transform", function(d) {
@@ -368,12 +405,14 @@ define([
 						this._click(d);
 					}
 				}));
+				
+				
 
 			nodeEnter.append("circle")
 				.attr('class', 'nodeCircle')
 				.attr("r", 0)
 				.style("fill", dojoLang.hitch(this, function(d) {
-					return  d.children ? "lightsteelblue" : "#fff";
+					return this._color(d);
 				}))
 				.style("stroke", this.nodeStrokeColor)
 				.style("stroke-width", this.nodeStrokeWidth);
@@ -423,9 +462,9 @@ define([
 			// Change the circle fill depending on whether it has children
 			node.select("circle.nodeCircle")
 				.attr("r", this.nodeRadius)
-				.style("fill", function(d) {
-				return d.children || d._children ? "lightsteelblue" : "#fff";
-				});
+				.style("fill", dojoLang.hitch(this, function(d) {
+					return this._color(d);
+				}))
 
 			// Transition nodes to their new position.
 			var nodeUpdate = node.transition()
@@ -452,47 +491,49 @@ define([
 			nodeExit.select("text")
 				.style("fill-opacity", 0);
 
-			// Update the links…
-			var link = this._svgGroup.selectAll("path.link")
-				.data(this._links, function(d) {
-					return d.target.id;
-				});
-
-			// Enter any new links at the parent's previous position.
-			link.enter().insert("path", "g")
-				.attr("class", "link")
-				.style("stroke", this.linkStrokeColor)
-				.attr("d", dojoLang.hitch(this,function(d) {
-					var o = {
-						x: source.x0,
-						y: source.y0
-					};
-					return this._diagonal({
-						source: o,
-						target: o
+			if (this.enableLinks){
+					
+				// Update the links…
+				var link = this._svgGroup.selectAll("path.link")
+					.data(this._links, function(d) {
+						return d.target.id;
 					});
-				}));
-				
-			// Transition links to their new position.
-			link.transition()
-				.duration(this.duration)
-				.attr("d", this._diagonal);
 
-			// Transition exiting nodes to the parent's new position.
-			link.exit().transition()
-				.duration(this.duration)
-				.attr("d", dojoLang.hitch(this, function(d) {
-					var o = {
-						x: source.x,
-						y: source.y
-					};
-					return this._diagonal({
-						source: o,
-						target: o
-					});
-				}))
-				.remove();
+				// Enter any new links at the parent's previous position.
+				link.enter().insert("path", "g")
+					.attr("class", "link")
+					.style("stroke", this.linkStrokeColor)
+					.attr("d", dojoLang.hitch(this,function(d) {
+						var o = {
+							x: source.x0,
+							y: source.y0
+						};
+						return this._diagonal({
+							source: o,
+							target: o
+						});
+					}));
+					
+				// Transition links to their new position.
+				link.transition()
+					.duration(this.duration)
+					.attr("d", this._diagonal);
 
+				// Transition exiting nodes to the parent's new position.
+				link.exit().transition()
+					.duration(this.duration)
+					.attr("d", dojoLang.hitch(this, function(d) {
+						var o = {
+							x: source.x,
+							y: source.y
+						};
+						return this._diagonal({
+							source: o,
+							target: o
+						});
+					}))
+					.remove();
+			}
 			// determine the maximum width of the SVG element by iterating through nodes and checking coordinates 
 			this._maxWidth = 0;
 			this._nodes.forEach(dojoLang.hitch(this,function(d,i) {
@@ -538,7 +579,155 @@ define([
 				console.log("calculated minWidth based on tree: " + this._viewerMinWidth);
 			}
 				
-		},   
+		},  
+		_updateIndentedTree : function(source) {
+			var margin = {top: 30, right: 20, bottom: 30, left: 20},
+				width = this._viewerWidth,
+				barHeight = 20,
+				barWidth = this._maxLabelLength * 10;//(width - margin.left - margin.right) * 0.2;		
+			
+			var i = 0,
+			duration = 400;	
+			
+			// Compute the new tree layout.
+			this._nodes = this._tree.nodes(this._root);
+			
+			if (!this.showTopParent){
+				this._links = this._tree.links(this._nodes).filter(function(d){  return !d.source._topParent });
+			} else {
+				this._links = this._tree.links(this._nodes);
+			}
+			
+		  var height = Math.max(500, this._nodes.length * barHeight + margin.top + margin.bottom);
+
+		  d3.select("svg").transition()
+			  .duration(duration)
+			  .attr("height", height);
+
+		  d3.select(self.frameElement).transition()
+			  .duration(duration)
+			  .style("height", height + "px");
+
+		  // Compute the "layout". TODO https://github.com/d3/d3-hierarchy/issues/67
+		  var index = -1;
+		  
+		  this._nodes.forEach(function(n) {
+			n.x = ++index * barHeight;
+			n.y = n.depth * 20;
+		  });
+		  
+		  // Update the nodes…
+		  var node = this._svgGroup.selectAll("g.node")
+			.data(this._nodes, function(d) { return d.id || (d.id = ++i); });
+							
+		  var nodeEnter = node.enter()
+			.append("g")
+			.filter(function(d){ return !d._topParent })
+			  .attr("class", "node")
+			  .attr("transform", function(d) { return "translate(" + source.y0 + "," + source.x0 + ")"; })
+			  .style("opacity", 0);
+			
+		  // Enter any new nodes at the parent's previous position.
+		  nodeEnter.append("rect")
+			  .attr("y", -barHeight / 2)
+			  .attr("height", barHeight)
+			  .attr("width", barWidth)
+			  .style("fill", dojoLang.hitch(this,function(d){
+					return this._color(d);
+				}
+				))
+			.style("stroke", this.nodeStrokeColor)
+			.style("stroke-width", this.nodeStrokeWidth)
+			  .on('click', dojoLang.hitch(this,function(d) {
+					// block collapse & expand behavior when onClickMF is defined
+					if (!this.onClickMF){
+						this._click(d);
+					}
+			}));
+
+		  nodeEnter.append("text")
+			  .attr("dy", 3.5)
+			  .attr("dx", 5.5)
+			  //.text(function(d) { return d.data.name; })
+			  .text(function(d) { return d.name; })
+			  .on('click', dojoLang.hitch(this,function(d) {
+					// block collapse & expand behavior when onClickMF is defined
+					if (!this.onClickMF){
+						this._click(d);
+					}
+			}))
+
+		  // Transition nodes to their new position.
+		  node.transition()
+			  .duration(duration)
+			  .attr("transform", function(d) { return "translate(" + d.y + "," + d.x + ")"; })
+			  .style("opacity", 1);
+
+		  node.transition()
+			  .duration(duration)
+			  .attr("transform", function(d) { return "translate(" + d.y + "," + d.x + ")"; })
+			  .style("opacity", 1)
+			.select("rect")
+			  	.style("fill", dojoLang.hitch(this,function(d){
+					return this._color(d);
+				}
+				))
+
+		  // Transition exiting nodes to the parent's new position.
+		  node.exit().transition()
+			  .duration(duration)
+			  .attr("transform", function(d) { return "translate(" + source.y + "," + source.x + ")"; })
+			  .style("opacity", 0)
+			  .remove();
+
+		if (this.enableLinks){
+			// Update the links…
+			var link = this._svgGroup.selectAll("path.link")
+				.data(this._links, function(d) {
+					return d.target.id;
+				});
+			
+		  // Enter any new links at the parent's previous position.
+		  link.enter()		  
+		  .insert("path", "g")				  
+			  .attr("class", "link") 
+			  .attr("d", dojoLang.hitch(this,function(d) {
+				  
+				var o = {x: source.x0, y: source.y0};
+				return this._diagonal({source: o, target: o});
+			  }))
+			  .style("stroke", this.linkStrokeColor)
+			.transition()
+			  .duration(duration)
+			  .attr("d", dojoLang.hitch(this,function(d) {return this._diagonal(d)}));
+
+		  // Transition links to their new position.
+		  link.transition()
+			  .duration(duration)
+			  .attr("d", dojoLang.hitch(this,function(d) {return this._diagonal(d)}));
+
+		  // Transition exiting nodes to the parent's new position.
+		  link.exit().transition()
+			  .duration(duration)
+			  .attr("d", dojoLang.hitch(this,function(d) {
+				var o = {x: source.x, y: source.y};
+				return this._diagonal({source: o, target: o});
+			  }))
+			  .remove();
+		}
+		  // Stash the old positions for transition.
+		 this._nodes.forEach(function(d) {
+			d.x0 = d.x;
+			d.y0 = d.y;
+		  }); 
+		 
+
+		},
+		// color nodes based on whether it is collapsed and expanded and has children or not
+		_color : function(d){
+			return  d.children ? this.parentExpandedColor : d._children ? this.parentCollapsedColor : this.childExpandedColor;
+			
+		},	
 		_endDrag : function(domNode) {
 			this._selectedNode = null;
 			d3.selectAll('.ghostCircle').attr('class', 'ghostCircle');
@@ -547,7 +736,7 @@ define([
 			d3.select(domNode).select('.ghostCircle').attr('pointer-events', '');
 			this._updateTempConnector();
 			if (this._draggingNode !== null) {
-				this._updateTree(this._root);
+				this._updateTreeView(this._root);
 				this._centerNode(this._draggingNode);
 				this._draggingNode = null;
 			}
@@ -560,7 +749,7 @@ define([
 				d.children = [];
 			}
 			if (d){
-				this._updateTree(d);
+				this._updateTreeView(d);
 			}
 		},
 		_expand : function(d) {
@@ -570,7 +759,7 @@ define([
 				d.children.forEach(dojoLang.hitch(this,function(i){this._expand(i);}));
 			}
 			if (d){
-				this._updateTree(d);
+				this._updateTreeView(d);
 			}
 		},
 		_initiateDrag : function(d, domNode) {
@@ -676,7 +865,6 @@ define([
 				// also add dragstart and dragend events
 				this._dragListener = this._dragListener
 					.on("drag", dojoLang.hitch(this,function(d) {
-
 						if (d == this._root) {
 							return;
 						}
