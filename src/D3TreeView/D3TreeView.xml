@@ -81,6 +81,21 @@
             <description>The microflow to pass the changed treenodes to. Updated nodes from the GUI are marked with updated=true. See D3TreeView_DemoProject for more info.</description>
             <returnType type="Boolean" />
         </property>
+		<property key="showTopParent" type="boolean" required="true" defaultValue="true">
+            <caption>Show Top Parent</caption>
+            <category>Appearance</category>
+            <description>If 'Yes' the Top Parent will be shown, if not only the first children and it's decendendants will be shown. Usefull when wanting to use multiple Top Parents.</description>
+        </property>
+		<property key="enableLinks" type="boolean" required="true" defaultValue="true">
+            <caption>Enable Links</caption>
+            <category>Appearance</category>
+            <description>Decide to show links connecting the nodes with 'Yes', or hide them with 'No'.</description>
+        </property>
+		<property key="verticalTreeView" type="boolean" required="true" defaultValue="false">
+            <caption>Indented TreeView</caption>
+            <category>Appearance</category>
+            <description>If 'Yes' an Indented Tree View will be generated, if 'No', a normal treeview will be generated</description>
+        </property>
 		<property key="_viewerHeight" type="integer" required="true" defaultValue="500">
             <caption>Height</caption>
             <category>Appearance</category>
@@ -131,10 +146,20 @@
             <category>Formatting</category>
             <description>The radius of the nodes in the tree.</description>
         </property>
-		<property key="nodeFillColor" type="string" required="true" defaultValue="#ffffff">
-            <caption>Node Fill Color</caption>
+		<property key="parentCollapsedColor" type="string" required="true" defaultValue="#3182bd">
+            <caption>Parent Collapsed Color</caption>
             <category>Formatting</category>
-            <description>The color to fill the node with.</description>
+            <description>The color to fill the node with when it has children but is collapsed.</description>
+        </property>
+		<property key="parentExpandedColor" type="string" required="true" defaultValue="lightsteelblue">
+            <caption>Parent Expanded Color</caption>
+            <category>Formatting</category>
+            <description>The color to fill the node with when it has children and is expanded.</description>
+        </property>
+		<property key="childExpandedColor" type="string" required="true" defaultValue="#ffffff">
+            <caption>Child Expanded Color</caption>
+            <category>Formatting</category>
+            <description>The color to fill the node with when it has no children and is expanded.</description>
         </property>
 		<property key="nodeStrokeColor" type="string" required="true" defaultValue="#AA112D">
             <caption>Node Stroke Color</caption>
