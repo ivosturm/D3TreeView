@@ -25,6 +25,7 @@
 	v2.0.0 - Added support for Indented Horizontal TreeView. 
 		   - Added managing colors for expanded / collapsed parents and nodes without children
 		   - Added showTopParent setting to cater for multiple topparents. If showTopParent = false, the Top Parent will not be shown.
+	v2.0.1 Added support for on click microflow of indented Tree View.	   
 */
 
 // Required module list. Remove unnecessary modules, you can always get them back from the boilerplate.
@@ -625,7 +626,14 @@ define([
 			.filter(function(d){ return !d._topParent })
 			  .attr("class", "node")
 			  .attr("transform", function(d) { return "translate(" + source.y0 + "," + source.x0 + ")"; })
-			  .style("opacity", 0);
+			  .style("opacity", 0)
+			   .call(this._dragListener)
+			   .on('click', dojoLang.hitch(this,function(d) {
+							   // block collapse & expand behavior when onClickMF is defined
+							   if (!this.onClickMF){
+											   this._click(d);
+							   }
+			   }));
 			
 		  // Enter any new nodes at the parent's previous position.
 		  nodeEnter.append("rect")
