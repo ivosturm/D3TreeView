@@ -3,7 +3,7 @@
     ========================
 
     @file      : D3TreeView.js
-    @version   : 2.0.0
+    @version   : 2.2.0
     @author    : Ivo Sturm
     @date      : 8-5-2018
     @copyright : First Consulting
@@ -26,6 +26,11 @@
 		   - Added managing colors for expanded / collapsed parents and nodes without children
 		   - Added showTopParent setting to cater for multiple topparents. If showTopParent = false, the Top Parent will not be shown.
 	v2.0.1 Added support for on click microflow of indented Tree View.	   
+	v2.2.0 - Removed deprecated usage of mx.ui
+		   - Added generic log node 
+		   - Bugfix added missing on click support on parent node
+		   - Added possibility to add a css class to a node so it can be styled
+		   - Added nodeShapeRect attribute to being able to show nodes as rectangles in normal Tree View scenario
 */
 
 // Required module list. Remove unnecessary modules, you can always get them back from the boilerplate.
@@ -66,11 +71,11 @@ define([
 		_panSpeed : 200,
 		_panBoundary : 20, 
 		_i : 0,
+		_logNode: "D3 TreeView ",
 
         // dojo.declare.constructor is called to construct the widget instance. Implement to initialize non-primitive properties.
         constructor: function() {
 
-            logger.debug(this.id + ".constructor");
             this._handles = [];
 			this._root = null;
 			this._tree = null;
@@ -118,6 +123,7 @@ define([
 				for (var j=0 ; j < objs.length ; j++){
 					var treeObj = {};
 					treeObj.name = objs[j].get(this.nameAttr);
+					treeObj.className = objs[j].get(this.classNameAttr); 
 					treeObj.guid = objs[j].getGuid();
 					treeObj.parentGuid = objs[j].getReference(this._parentReferenceName);
 					// set children as empty array for now. In second loop fill based on parentGuid
@@ -210,13 +216,13 @@ define([
 
 				if (this.verticalTreeView){
 					if (this.loggingEnabled){
-						console.log('indented treeview');
+						console.log(this._logNode + 'indented treeview');
 					}
 					this._root.x0 = this._rootOffsetX;	
 					
 				} else {
 					if (this.loggingEnabled){
-						console.log('normal treeview');
+						console.log(this._logNode + 'normal treeview');
 					}
 					this._root.x0 = this._viewerHeight / 2 + this._rootOffsetX;				
 				}
@@ -268,7 +274,7 @@ define([
                     guid: this._contextObj.getGuid(),
                     callback: dojoLang.hitch(this, function (guid) {
 						if (this.loggingEnabled){
-							console.log(this.id + "update on entity with guid: " + guid);
+							console.log(this._logNode + "update on entity with guid: " + guid);
 						}
 						// reset _initialLoad, since it will trigger a resize of the widget based on the height it needs
 						this._intialLoad = true;
@@ -383,17 +389,19 @@ define([
 
 			}));
 
-			// Update the nodes…
+			// Update the nodes?
 			var node = this._svgGroup.selectAll("g.node")
 				.data(this._nodes, dojoLang.hitch(this,function(d) {
 					return d.id || (d.id = ++this._i);
 				}));
-
 			// Enter any new nodes at the parent's previous position.
 			var nodeEnter = node.enter().append("g")
 				.filter(function(d){ return !d._topParent })
 				.call(this._dragListener)
-				.attr("class", "node")
+				.attr("class", function(){
+					// v2.2.0 add class name to each node if fed from Studio Pro
+					return source.className ? "node " + source.className : 'node';
+				})
 				.attr("transform", function(d) {
 					return "translate(" + source.y0 + "," + source.x0 + ")";
 				})
@@ -407,9 +415,14 @@ define([
 					}
 				}));
 				
-				
-
-			nodeEnter.append("circle")
+			// v2.2.0 user can choose between default circle or new rectangle
+			if (this.nodeShapeRect){
+				var barHeight = 20,
+				barWidth = this._maxLabelLength * 10;
+				this._appendRect(nodeEnter,barHeight,barWidth);
+			}
+			else {
+				nodeEnter.append("circle")
 				.attr('class', 'nodeCircle')
 				.attr("r", 0)
 				.style("fill", dojoLang.hitch(this, function(d) {
@@ -417,7 +430,7 @@ define([
 				}))
 				.style("stroke", this.nodeStrokeColor)
 				.style("stroke-width", this.nodeStrokeWidth);
-
+			}
 			nodeEnter.append("text")
 				.attr("x", function(d) {
 					return d.children || d._children ? -10 : 10;
@@ -494,7 +507,7 @@ define([
 
 			if (this.enableLinks){
 					
-				// Update the links…
+				// Update the links?
 				var link = this._svgGroup.selectAll("path.link")
 					.data(this._links, function(d) {
 						return d.target.id;
@@ -574,10 +587,10 @@ define([
 					.attr("height", this._viewerHeight + 2 * this._rootOffsetY);
 			}
 			if (this.loggingEnabled){
-				console.log("calculated maxHeight based on tree: " + this._viewerHeight);
-				console.log("calculated maxWidth based on tree: " + this._maxWidth);
-				console.log("calculated minHeight based on tree: " + this._viewerMinHeight);
-				console.log("calculated minWidth based on tree: " + this._viewerMinWidth);
+				console.log(this._logNode + "calculated maxHeight based on tree: " + this._viewerHeight);
+				console.log(this._logNode + "calculated maxWidth based on tree: " + this._maxWidth);
+				console.log(this._logNode + "calculated minHeight based on tree: " + this._viewerMinHeight);
+				console.log(this._logNode + "calculated minWidth based on tree: " + this._viewerMinWidth);
 			}
 				
 		},  
@@ -617,7 +630,7 @@ define([
 			n.y = n.depth * 20;
 		  });
 		  
-		  // Update the nodes…
+		  // Update the nodes?
 		  var node = this._svgGroup.selectAll("g.node")
 			.data(this._nodes, function(d) { return d.id || (d.id = ++i); });
 							
@@ -629,23 +642,15 @@ define([
 			  .style("opacity", 0)
 			   .call(this._dragListener)
 			   .on('click', dojoLang.hitch(this,function(d) {
-							   // block collapse & expand behavior when onClickMF is defined
-							   if (!this.onClickMF){
-											   this._click(d);
-							   }
+				// block collapse & expand behavior when onClickMF is defined
+					if (!this.onClickMF){
+						this._click(d);
+					}
+					
 			   }));
 			
 		  // Enter any new nodes at the parent's previous position.
-		  nodeEnter.append("rect")
-			  .attr("y", -barHeight / 2)
-			  .attr("height", barHeight)
-			  .attr("width", barWidth)
-			  .style("fill", dojoLang.hitch(this,function(d){
-					return this._color(d);
-				}
-				))
-			.style("stroke", this.nodeStrokeColor)
-			.style("stroke-width", this.nodeStrokeWidth)
+		  this._appendRect(nodeEnter,barHeight,barWidth)
 			  .on('click', dojoLang.hitch(this,function(d) {
 					// block collapse & expand behavior when onClickMF is defined
 					if (!this.onClickMF){
@@ -689,7 +694,7 @@ define([
 			  .remove();
 
 		if (this.enableLinks){
-			// Update the links…
+			// Update the links?
 			var link = this._svgGroup.selectAll("path.link")
 				.data(this._links, function(d) {
 					return d.target.id;
@@ -730,6 +735,18 @@ define([
 		  }); 
 		 
 
+		},
+		_appendRect : function (nodeEnter,barHeight,barWidth){
+			return nodeEnter.append("rect")
+			.attr("y", -barHeight / 2)
+			.attr("height", barHeight)
+			.attr("width", barWidth)
+			.style("fill", dojoLang.hitch(this,function(d){
+				  return this._color(d);
+			  }
+			  ))
+		  .style("stroke", this.nodeStrokeColor)
+		  .style("stroke-width", this.nodeStrokeWidth);
 		},
 		// color nodes based on whether it is collapsed and expanded and has children or not
 		_color : function(d){
@@ -858,13 +875,15 @@ define([
 			// a drag event is also triggered when clicking. 
 			this._dragListener = d3.behavior.drag()
 				.on("dragstart", dojoLang.hitch(this,function(d) {
-					if (d == this._root) {
-						return;
-					}
 					this._dragStarted = true;
 					d3.event.sourceEvent.stopPropagation();
 					if (this.onClickMF && d){
+						console.debug(this._logNode + 'child node clicked!');
 						this._execMF(d);
+					} 
+					// v2.2.0: else means dragging and dropping, this we do not want enabled on parent node
+					else if (d == this._root) {
+							return;					
 					}
 				}));
 			
@@ -1007,8 +1026,9 @@ define([
 		},
 		_loadTreeData : function () {
 
-			mx.ui.action(this.nodeMicroflow,{
+			mx.data.action({
 				params: {
+					actionname: this.nodeMicroflow,
 					applyto: 'selection',
 					guids: [this._contextObj.getGuid()]
 				},
@@ -1017,7 +1037,7 @@ define([
 				}),	
 				error: dojoLang.hitch(this,function(error) {
 					this._hideProgress();
-					console.log(error.description);
+					console.log(this._logNode  + error.description);
 				})
 			}, this);
 
@@ -1033,8 +1053,9 @@ define([
 		},
 		_execMF : function (d){
 			// trigger the On Click Microflow. Use mx.ui.action instead of mx.data.action, since in Mx version mx.data.action has a bug in it, not able to find the mxform if a close page action is used..	
-			mx.ui.action(this.onClickMF,{
+			mx.data.action({
 						params:	{
+							actionname: this.onClickMF,
 							applyto: 'selection',
 							guids: [d.guid]
 
@@ -1042,8 +1063,8 @@ define([
 						progress: "modal",
 						origin: this.mxform,
 						error: dojoLang.hitch(this,function(error) {
-							console.log(error.description);
-							console.log(d.guid);
+							console.log(this._logNode  + error.description);
+							console.log(this._logNode + d.guid);
 						}),
 						callback: dojoLang.hitch(this,function(result){			
 						})						
@@ -1075,10 +1096,10 @@ define([
 					
 					if (oldParent && newParent && oldParent._guid !== newParent._guid){
 						if (this.loggingEnabled){
-							console.log("child: " + this._nodes[n].name + ", guid: " + child._guid );
-							console.log("old parent: " + oldParent.jsonData.attributes.Name.value + ", guid: " + oldParent._guid);
-							console.log("new parent: " + newParent.jsonData.attributes.Name.value + ", guid: " + newParent._guid);
-							console.log(reference);
+							console.log(this._logNode  + "child: " + this._nodes[n].name + ", guid: " + child._guid );
+							console.log(this._logNode  + "old parent: " + oldParent.jsonData.attributes.Name.value + ", guid: " + oldParent._guid);
+							console.log(this._logNode  + "new parent: " + newParent.jsonData.attributes.Name.value + ", guid: " + newParent._guid);
+							console.log(this._logNode  + reference);
 						}
 						// remove reference to old parent 
 						var removeGuidArray = [];
@@ -1094,8 +1115,10 @@ define([
 				}
 			}
 			// trigger the save Microflow. Use mx.ui.action instead of mx.data.action, since in Mx version mx.data.action has a bug in it, not able to find the mxform if a close page action is used..			
-			mx.ui.action(this.saveMicroflow,{
+			// since Mx version 8, needed to move back to mx.data.action, because mx.ui is deprecated
+			mx.data.action({
 						params:	{
+							actionname: this.saveMicroflow,
 							applyto: 'selection',
 							guids: [this._contextObj.getGuid()]
 
@@ -1103,7 +1126,7 @@ define([
 						progress: "modal",
 						origin: this.mxform,
 						error: dojoLang.hitch(this,function(error) {
-							console.log(error.description);
+							console.log(this._logNode  + error.description);
 						}),
 						callback: dojoLang.hitch(this,function(result){			
 						})						
