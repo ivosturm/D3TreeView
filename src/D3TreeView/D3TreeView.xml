@@ -21,6 +21,14 @@
                 <attributeType name="String"/>
             </attributeTypes>
         </property>
+        <property key="classNameAttr" type="attribute" entityProperty="nodeEntity" required="false">
+            <caption>Class Name Attribute</caption>
+            <category>Data Source</category>
+            <description>The attribute used for setting the CSS class of the node in the tree. Can be used in CSS for custom styling.</description>
+            <attributeTypes>
+                <attributeType name="String"/>
+            </attributeTypes>
+        </property>
         <property key="updateAttr" type="attribute" entityProperty="nodeEntity" required="true">
             <caption>Update Attribute</caption>
             <category>Data Source</category>
@@ -95,6 +103,11 @@
             <caption>Indented TreeView</caption>
             <category>Appearance</category>
             <description>If 'Yes' an Indented Tree View will be generated, if 'No', a normal treeview will be generated</description>
+        </property>
+		<property key="nodeShapeRect" type="boolean" required="true" defaultValue="false">
+            <caption>Rectangle Shape</caption>
+            <category>Appearance</category>
+            <description>If 'Yes' the nodes in the normal Tree View scenario will appear as rectangles instead of circles.</description>
         </property>
 		<property key="_viewerHeight" type="integer" required="true" defaultValue="500">
             <caption>Height</caption>
