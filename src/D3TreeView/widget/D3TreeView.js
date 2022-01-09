@@ -3,9 +3,9 @@
     ========================
 
     @file      : D3TreeView.js
-    @version   : 2.2.0
+    @version   : 2.3.0
     @author    : Ivo Sturm
-    @date      : 8-5-2018
+    @date      : 9-1-2022
     @copyright : First Consulting
     @license   : Apache 2
 
@@ -31,6 +31,7 @@
 		   - Bugfix added missing on click support on parent node
 		   - Added possibility to add a css class to a node so it can be styled
 		   - Added nodeShapeRect attribute to being able to show nodes as rectangles in normal Tree View scenario
+	v2.3.0 - Added text positioning option in case of normal rectangle scenario
 */
 
 // Required module list. Remove unnecessary modules, you can always get them back from the boilerplate.
@@ -431,15 +432,24 @@ define([
 				.style("stroke", this.nodeStrokeColor)
 				.style("stroke-width", this.nodeStrokeWidth);
 			}
+			// v2.3.0: added extra check on node, if rectangle enabled to position text inside the rectangle
 			nodeEnter.append("text")
-				.attr("x", function(d) {
-					return d.children || d._children ? -10 : 10;
-				})
+				.attr("x", dojoLang.hitch(this,function(d){
+					if ((d.children || d._children) && !this.nodeShapeRect) {
+						return -10;
+					} else {
+						return 10;
+					}				
+				}))
 				.attr("dy", ".35em")
 				.attr('class', 'nodeText')
-				.attr("text-anchor", function(d) {
-					return d.children || d._children ? "end" : "start";
-				})
+				.attr("text-anchor", dojoLang.hitch(this,function(d){
+					if ((d.children || d._children) && !this.nodeShapeRect) {
+						return "end";
+					} else {
+						return "start";
+					}
+				}))
 				.text(function(d) {
 					return d.name;
 				})
@@ -460,18 +470,6 @@ define([
 				.on("mouseout", dojoLang.hitch(this,function(node) {
 					this._outCircle(node);
 				}));
-
-			// Update the text to reflect whether node has children or not.
-			node.select('text')
-				.attr("x", function(d) {
-					return d.children || d._children ? -10 : 10;
-				})
-				.attr("text-anchor", function(d) {
-					return d.children || d._children ? "end" : "start";
-				})
-				.text(function(d) {
-					return d.name;
-				});
 
 			// Change the circle fill depending on whether it has children
 			node.select("circle.nodeCircle")
